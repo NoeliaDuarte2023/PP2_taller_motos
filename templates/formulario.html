@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Clientes - Taller de Motos</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 420px; margin: 40px auto; }
+        h1 { font-size: 20px; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 18px; padding: 10px 16px; cursor: pointer; }
+        #resultado { margin-top: 20px; padding: 12px; border-radius: 4px; display: none; }
+        .exito { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Registro de Clientes - Taller de Motos</h1>
+
+    <form id="formCliente">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" name="nombre">
+
+        <label for="apellido">Apellido</label>
+        <input type="text" id="apellido" name="apellido">
+
+        <label for="telefono">Teléfono</label>
+        <input type="text" id="telefono" name="telefono">
+
+        <label for="direccion">Dirección</label>
+        <input type="text" id="direccion" name="direccion">
+
+        <button type="submit">Registrar cliente</button>
+    </form>
+
+    <div id="resultado"></div>
+
+    <script>
+        const form = document.getElementById("formCliente");
+        const resultado = document.getElementById("resultado");
+
+        form.addEventListener("submit", async function (evento) {
+            evento.preventDefault();
+
+            // Se arma el cuerpo de la solicitud igual que un formulario clasico,
+            // para que Flask lo reciba con request.form
+            const datos = new URLSearchParams();
+            datos.append("nombre", document.getElementById("nombre").value);
+            datos.append("apellido", document.getElementById("apellido").value);
+            datos.append("telefono", document.getElementById("telefono").value);
+            datos.append("direccion", document.getElementById("direccion").value);
+
+            try {
+                const respuesta = await fetch("/clientes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: datos
+                });
+
+                const data = await respuesta.json();
+
+                resultado.style.display = "block";
+                if (respuesta.ok) {
+                    resultado.className = "exito";
+                    resultado.textContent = "Éxito (" + respuesta.status + "): " + data.mensaje + " ID: " + data.id;
+                } else {
+                    resultado.className = "error";
+                    resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));
+                }
+            } catch (err) {
+                resultado.style.display = "block";
+                resultado.className = "error";
+                resultado.textContent = "No se pudo conectar con el servidor.";
+            }
+        });
+    </script>
+</body>
+</html>
