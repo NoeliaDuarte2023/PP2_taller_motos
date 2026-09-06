@@ -57,7 +57,10 @@ def registrar_cliente():
     try:
         conexion = obtener_conexion()
     except mysql.connector.Error as error:
-        return jsonify({"error": f"No se pudo conectar a la base de datos: {error}"}), 500
+        # El detalle tecnico completo queda solo en el log del servidor,
+        # nunca se lo mostramos al usuario final
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
 
     cursor = conexion.cursor()
 
@@ -88,7 +91,9 @@ def registrar_cliente():
         }), 201
 
     except mysql.connector.Error as error:
-        return jsonify({"error": f"Error al procesar el registro: {error}"}), 500
+        # Igual que arriba: el detalle tecnico queda solo en el log del servidor
+        print(f"[ERROR INTERNO] Fallo al procesar el registro: {error}")
+        return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
 
     finally:
         cursor.close()
