@@ -216,7 +216,9 @@ En todos los casos, el equipo revisó críticamente el código generado, lo prob
 ## Equipo
 
 **Grupo 10**
-_Completar con los nombres de los integrantes._
+- Duarte, Noelia Itatí
+- Hauff, Ezequiel
+- Fleitas, Liliana
 
 ---
 
