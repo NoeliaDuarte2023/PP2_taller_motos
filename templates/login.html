@@ -2,32 +2,34 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ingreso - Taller de Motos</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 420px; margin: 40px auto; }
-        h1 { font-size: 20px; }
-        label { display: block; margin-top: 12px; font-weight: bold; }
-        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
-        button { margin-top: 18px; padding: 10px 16px; cursor: pointer; }
-        #resultado { margin-top: 20px; padding: 12px; border-radius: 4px; display: none; }
-        .exito { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
-    </style>
+    <link rel="stylesheet" href="/static/estilos.css">
 </head>
 <body>
-    <h1>Ingreso - Taller de Motos</h1>
+    <header class="barra">
+        <div class="barra__marca"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#f5b800" stroke-width="4"/><circle cx="16" cy="16" r="3.2" fill="#f5b800"/><g stroke="#f5b800" stroke-width="1.6" stroke-linecap="round"><path d="M16 4v8M16 20v8M4 16h8M20 16h8"/></g></svg><span>Taller de Motos</span></div>
+        
+    </header>
+    <div class="franja"></div>
+    <main class="contenido">
+        <div class="panel panel--login">
+            <h1>Ingreso</h1>
+            <p class="bajada">Ingresá con tu usuario para registrar clientes, motos y servicios.</p>
 
-    <form id="formLogin">
-        <label for="usuario">Usuario</label>
-        <input type="text" id="usuario" name="usuario" autocomplete="username">
+            <form id="formLogin">
+                <label for="usuario">Usuario</label>
+                <input type="text" id="usuario" name="usuario" autocomplete="username">
 
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" name="password" autocomplete="current-password">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" autocomplete="current-password">
 
-        <button type="submit">Ingresar</button>
-    </form>
+                <button type="submit">Ingresar</button>
+            </form>
 
-    <div id="resultado"></div>
+            <div id="resultado" role="status" aria-live="polite"></div>
+        </div>
+    </main>
 
     <script>
         const form = document.getElementById("formLogin");

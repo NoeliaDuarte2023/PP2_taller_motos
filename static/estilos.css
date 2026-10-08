@@ -1,0 +1,225 @@
+/* =========================================================
+   Estilos del sistema - Taller de Motos
+   Un solo archivo para las cuatro pantallas.
+   Paleta de taller: acero oscuro, chapa clara y amarillo de seguridad.
+   ========================================================= */
+:root {
+    --acero: #22262b;
+    --chapa: #e6e8ea;
+    --panel: #ffffff;
+    --borde: #c5cacf;
+    --campo: #8c949b;
+    --texto: #1f2328;
+    --texto-suave: #4a5058;
+    --amarillo: #f5b800;
+    --amarillo-oscuro: #dca300;
+    --exito-fondo: #e4f2e8;
+    --exito: #17562d;
+    --error-fondo: #fbe7e5;
+    --error: #a3231b;
+    --fuente-titulo: Bahnschrift, "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+    --fuente-texto: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--chapa);
+    color: var(--texto);
+    font-family: var(--fuente-texto);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* ---------- Barra superior ---------- */
+.barra {
+    background: var(--acero);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px max(16px, calc((100% - 760px) / 2));
+}
+.barra__marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--fuente-titulo);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+.barra__marca svg { width: 30px; height: 30px; flex: none; }
+.barra a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    padding: 8px 12px;
+    border: 1.5px solid #5b6169;
+    border-radius: 4px;
+}
+.barra a:hover { border-color: var(--amarillo); color: var(--amarillo); }
+
+/* Franja de seguridad: el unico detalle llamativo de la pagina */
+.franja {
+    height: 9px;
+    background: repeating-linear-gradient(-45deg, var(--amarillo) 0 14px, var(--acero) 14px 28px);
+}
+
+/* ---------- Contenido ---------- */
+.contenido {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 28px 16px 48px;
+}
+
+/* Indicador de pasos: cliente > moto > servicio */
+.pasos {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+    display: flex;
+    gap: 8px;
+}
+.paso {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--panel);
+    border: 1.5px solid var(--borde);
+    border-radius: 6px;
+    color: var(--texto-suave);
+    font-family: var(--fuente-titulo);
+    font-size: 17px;
+}
+.paso__numero {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--chapa);
+    color: var(--texto-suave);
+    font-weight: 700;
+    font-size: 15px;
+}
+.paso--hecho .paso__numero { background: var(--exito); color: #fff; }
+.paso--actual {
+    border-color: var(--acero);
+    color: var(--texto);
+    font-weight: 600;
+    box-shadow: inset 0 -4px 0 var(--amarillo);
+}
+.paso--actual .paso__numero { background: var(--acero); color: #fff; }
+
+.panel {
+    background: var(--panel);
+    border: 1.5px solid var(--borde);
+    border-radius: 8px;
+    padding: 28px 28px 26px;
+}
+.panel--login { max-width: 440px; margin: 0 auto; }
+
+h1 {
+    margin: 0 0 4px;
+    font-family: var(--fuente-titulo);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.15;
+}
+.bajada { margin: 0 0 20px; color: var(--texto-suave); }
+
+/* ---------- Formularios ---------- */
+label {
+    display: block;
+    margin-top: 16px;
+    font-weight: 600;
+    font-size: 15px;
+}
+input {
+    display: block;
+    width: 100%;
+    height: 46px;
+    margin-top: 6px;
+    padding: 0 12px;
+    font: inherit;
+    color: var(--texto);
+    background: #fff;
+    border: 1.5px solid var(--campo);
+    border-radius: 4px;
+}
+input:hover { border-color: var(--acero); }
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--amarillo);
+    outline-offset: 2px;
+    border-color: var(--acero);
+}
+input[readonly] {
+    background: #eef0f1;
+    color: var(--texto-suave);
+    border-style: dashed;
+    cursor: not-allowed;
+}
+.ayuda { margin-top: 4px; font-size: 13.5px; color: var(--texto-suave); }
+
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.fila--tres { grid-template-columns: 1.2fr 1.2fr .8fr; }
+
+button {
+    margin-top: 24px;
+    height: 48px;
+    padding: 0 28px;
+    font: inherit;
+    font-family: var(--fuente-titulo);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--acero);
+    background: var(--amarillo);
+    border: 2px solid var(--acero);
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover { background: var(--amarillo-oscuro); }
+button:active { transform: translateY(1px); }
+
+.enlace-volver {
+    display: inline-block;
+    margin-top: 18px;
+    color: var(--texto-suave);
+    font-size: 15px;
+}
+.enlace-volver:hover { color: var(--texto); }
+
+/* ---------- Mensajes de resultado ---------- */
+#resultado {
+    display: none;
+    margin-top: 22px;
+    padding: 14px 16px;
+    border-radius: 4px;
+    border-left: 6px solid;
+    font-size: 16px;
+}
+#resultado.exito { background: var(--exito-fondo); color: var(--exito); border-color: var(--exito); }
+#resultado.error { background: var(--error-fondo); color: var(--error); border-color: var(--error); }
+
+/* ---------- Pantallas chicas ---------- */
+@media (max-width: 560px) {
+    .barra__marca { font-size: 19px; }
+    .panel { padding: 22px 18px; }
+    h1 { font-size: 26px; }
+    .fila, .fila--tres { grid-template-columns: 1fr; }
+    .paso { padding: 8px; font-size: 15px; gap: 6px; }
+    .paso__numero { width: 24px; height: 24px; font-size: 13px; }
+    button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    button:active { transform: none; }
+}
