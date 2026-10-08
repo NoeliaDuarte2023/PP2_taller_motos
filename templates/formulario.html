@@ -16,7 +16,6 @@
 </head>
 <body>
     <h1>Registro de Clientes - Taller de Motos</h1>
-    <a href="/motos/nueva" style="font-size:14px;">Ir al registro de motos &rarr;</a> &nbsp;|&nbsp;
     <a href="/logout" style="font-size:14px;">Cerrar sesión</a>
 
     <form id="formCliente">
@@ -64,7 +63,12 @@
                 resultado.style.display = "block";
                 if (respuesta.ok) {
                     resultado.className = "exito";
-                    resultado.textContent = "Éxito (" + respuesta.status + "): " + data.mensaje + " ID: " + data.id;
+                    resultado.textContent = "Éxito (" + respuesta.status + "): " + data.mensaje + " ID: " + data.id +
+                        ". Pasando al registro de la moto...";
+                    // Flujo guiado: se pasa solo a cargar la moto de este cliente
+                    setTimeout(function () {
+                        window.location.href = "/motos/nueva?cliente_id=" + encodeURIComponent(data.id);
+                    }, 2500);
                 } else {
                     resultado.className = "error";
                     resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));

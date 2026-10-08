@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Registro de Motos - Taller de Motos</title>
+    <title>Registro de Servicios - Taller de Motos</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 420px; margin: 40px auto; }
         h1 { font-size: 20px; }
@@ -17,59 +17,55 @@
     </style>
 </head>
 <body>
-    <h1>Registro de Motos - Taller de Motos</h1>
+    <h1>Registro de Servicios - Taller de Motos</h1>
     <a href="/">&larr; Volver al inicio</a> &nbsp;|&nbsp; <a href="/logout">Cerrar sesión</a>
 
-    <form id="formMoto">
-        <label for="cliente_id">ID del cliente</label>
-        <input type="text" id="cliente_id" name="cliente_id">
-        <div class="ayuda">El ID aparece en el mensaje al registrar el cliente.</div>
+    <form id="formServicio">
+        <label for="moto_id">ID de la moto</label>
+        <input type="text" id="moto_id" name="moto_id">
+        <div class="ayuda">El ID aparece en el mensaje al registrar la moto.</div>
 
-        <label for="patente">Patente</label>
-        <input type="text" id="patente" name="patente">
+        <label for="fecha">Fecha del servicio</label>
+        <input type="text" id="fecha" name="fecha" placeholder="AAAA-MM-DD">
 
-        <label for="marca">Marca</label>
-        <input type="text" id="marca" name="marca">
+        <label for="descripcion">Descripción</label>
+        <input type="text" id="descripcion" name="descripcion">
 
-        <label for="modelo">Modelo</label>
-        <input type="text" id="modelo" name="modelo">
+        <label for="costo">Costo</label>
+        <input type="text" id="costo" name="costo">
+        <div class="ayuda">Solo números, sin puntos de miles. Ej: 15000 o 15000,50</div>
 
-        <label for="anio">Año</label>
-        <input type="text" id="anio" name="anio">
-
-        <button type="submit">Registrar moto</button>
+        <button type="submit">Registrar servicio</button>
     </form>
 
     <div id="resultado"></div>
 
     <script>
-        const form = document.getElementById("formMoto");
+        const form = document.getElementById("formServicio");
         const resultado = document.getElementById("resultado");
 
-        // Flujo guiado: si se llega desde el alta de un cliente, el ID viene en la URL
-        const idUrl = new URLSearchParams(window.location.search).get("cliente_id");
+        // Flujo guiado: si se llega desde el alta de una moto, el ID viene en la URL
+        const idUrl = new URLSearchParams(window.location.search).get("moto_id");
         if (idUrl && /^[0-9]+$/.test(idUrl)) {
-            const campo = document.getElementById("cliente_id");
+            const campo = document.getElementById("moto_id");
             campo.value = idUrl;
             campo.readOnly = true;
-            document.querySelector("#formMoto .ayuda").textContent =
-                "Cliente cargado automaticamente desde el paso anterior.";
+            document.querySelector("#formServicio .ayuda").textContent =
+                "Moto cargada automaticamente desde el paso anterior.";
         }
 
         form.addEventListener("submit", async function (evento) {
             evento.preventDefault();
 
-            // Mismo mecanismo que el formulario de clientes: cuerpo form-urlencoded
-            // para que Flask lo reciba con request.form
+            // Mismo mecanismo que los otros formularios: cuerpo form-urlencoded
             const datos = new URLSearchParams();
-            datos.append("cliente_id", document.getElementById("cliente_id").value);
-            datos.append("patente", document.getElementById("patente").value);
-            datos.append("marca", document.getElementById("marca").value);
-            datos.append("modelo", document.getElementById("modelo").value);
-            datos.append("anio", document.getElementById("anio").value);
+            datos.append("moto_id", document.getElementById("moto_id").value);
+            datos.append("fecha", document.getElementById("fecha").value);
+            datos.append("descripcion", document.getElementById("descripcion").value);
+            datos.append("costo", document.getElementById("costo").value);
 
             try {
-                const respuesta = await fetch("/motos", {
+                const respuesta = await fetch("/servicios", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: datos
@@ -81,11 +77,8 @@
                 if (respuesta.ok) {
                     resultado.className = "exito";
                     resultado.textContent = "Éxito (" + respuesta.status + "): " + data.mensaje + " ID: " + data.id +
-                        ". Pasando al registro del servicio...";
-                    // Flujo guiado: se pasa solo a cargar el servicio de esta moto
-                    setTimeout(function () {
-                        window.location.href = "/servicios/nueva?moto_id=" + encodeURIComponent(data.id);
-                    }, 2500);
+                        ". Ciclo completo. Volviendo al inicio para un nuevo cliente...";
+                    setTimeout(function () { window.location.href = "/"; }, 3500);
                 } else {
                     resultado.className = "error";
                     resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));

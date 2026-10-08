@@ -4,7 +4,9 @@ from functools import wraps
 from werkzeug.security import check_password_hash
 import mysql.connector
 import os
-from datetime import date
+import re
+from datetime import date, datetime
+from decimal import Decimal
 from dotenv import load_dotenv
 
 # Cargar las variables definidas en el archivo .env
@@ -268,6 +270,113 @@ def registrar_moto():
 
     except mysql.connector.Error as error:
         print(f"[ERROR INTERNO] Fallo al procesar el registro de moto: {error}")
+        return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+# ---------------------------------------------------------------------------
+# SERVICIOS: cada servicio pertenece a una moto ya registrada (moto_id -> motos.id)
+# ---------------------------------------------------------------------------
+
+# Ruta que sirve el formulario de registro de servicios (frontend)
+@app.route("/servicios/nueva", methods=["GET"])
+@login_requerido
+def formulario_servicios():
+    return render_template("servicios.html")
+
+@app.route("/servicios", methods=["POST"])
+@login_requerido
+def registrar_servicio():
+    # 1) Recibir los datos enviados desde el formulario
+    moto_id = request.form.get("moto_id", "").strip()
+    fecha = request.form.get("fecha", "").strip()
+    descripcion = request.form.get("descripcion", "").strip()
+    costo = request.form.get("costo", "").strip()
+
+    # 2) Validar que ningun campo obligatorio este vacio
+    campos_faltantes = []
+    if not moto_id:
+        campos_faltantes.append("moto_id")
+    if not fecha:
+        campos_faltantes.append("fecha")
+    if not descripcion:
+        campos_faltantes.append("descripcion")
+    if not costo:
+        campos_faltantes.append("costo")
+
+    if campos_faltantes:
+        return jsonify({
+            "error": "Faltan campos obligatorios.",
+            "campos_faltantes": campos_faltantes
+        }), 400
+
+    # 3) Validar formatos
+    if not es_entero(moto_id) or int(moto_id) < 1:
+        return jsonify({"error": "El moto_id debe ser un numero entero positivo."}), 400
+
+    # Fecha con formato AAAA-MM-DD, que exista en el calendario, no futura y desde el 2000
+    fecha_valida = None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", fecha):
+        try:
+            fecha_valida = datetime.strptime(fecha, "%Y-%m-%d").date()
+        except ValueError:
+            fecha_valida = None
+    if fecha_valida is None:
+        return jsonify({"error": "La fecha debe tener el formato AAAA-MM-DD y ser una fecha real."}), 400
+    if fecha_valida > date.today():
+        return jsonify({"error": "La fecha no puede ser futura."}), 400
+    if fecha_valida < date(2000, 1, 1):
+        return jsonify({"error": "La fecha no puede ser anterior al 01/01/2000."}), 400
+
+    if not (3 <= len(descripcion) <= 200):
+        return jsonify({"error": "La descripcion debe tener entre 3 y 200 caracteres."}), 400
+
+    # Costo: acepta coma o punto decimal, sin separador de miles, hasta 2 decimales y mayor a 0
+    costo_texto = costo.replace(",", ".")
+    if not re.fullmatch(r"\d{1,8}(\.\d{1,2})?", costo_texto) or Decimal(costo_texto) <= 0:
+        return jsonify({"error": "El costo debe ser un numero mayor a 0, sin separador de miles y con hasta 2 decimales (ej: 15000 o 15000,50)."}), 400
+    costo_valido = Decimal(costo_texto)
+
+    # Manejo de error si falla la conexion a MySQL (por ejemplo, servidor caido)
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        # 4) Verificar que la moto exista
+        cursor.execute("SELECT id FROM motos WHERE id = %s", (int(moto_id),))
+        if not cursor.fetchone():
+            return jsonify({"error": "No existe una moto con ese ID."}), 404
+
+        # 5) Evitar cargar dos veces el mismo servicio (misma moto, fecha y descripcion)
+        cursor.execute(
+            "SELECT id FROM servicios WHERE moto_id = %s AND fecha = %s AND descripcion = %s",
+            (int(moto_id), fecha_valida.isoformat(), descripcion)
+        )
+        if cursor.fetchone():
+            return jsonify({"error": "Ya existe un servicio igual (misma moto, fecha y descripcion)."}), 409
+
+        # 6) Insertar el servicio
+        cursor.execute(
+            "INSERT INTO servicios (moto_id, fecha, descripcion, costo) VALUES (%s, %s, %s, %s)",
+            (int(moto_id), fecha_valida.isoformat(), descripcion, costo_valido)
+        )
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Servicio registrado correctamente.",
+            "id": cursor.lastrowid
+        }), 201
+
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo al procesar el registro de servicio: {error}")
         return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
 
     finally:
