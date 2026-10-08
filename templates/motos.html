@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Registro de Clientes - Taller de Motos</title>
+    <title>Registro de Motos - Taller de Motos</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 420px; margin: 40px auto; }
         h1 { font-size: 20px; }
@@ -12,48 +12,54 @@
         #resultado { margin-top: 20px; padding: 12px; border-radius: 4px; display: none; }
         .exito { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
+        .ayuda { font-size: 12px; color: #555; margin-top: 2px; }
+        a { font-size: 14px; }
     </style>
 </head>
 <body>
-    <h1>Registro de Clientes - Taller de Motos</h1>
-    <a href="/motos/nueva" style="font-size:14px;">Ir al registro de motos &rarr;</a> &nbsp;|&nbsp;
-    <a href="/logout" style="font-size:14px;">Cerrar sesión</a>
+    <h1>Registro de Motos - Taller de Motos</h1>
+    <a href="/">&larr; Ir al registro de clientes</a> &nbsp;|&nbsp; <a href="/logout">Cerrar sesión</a>
 
-    <form id="formCliente">
-        <label for="nombre">Nombre</label>
-        <input type="text" id="nombre" name="nombre">
+    <form id="formMoto">
+        <label for="cliente_id">ID del cliente</label>
+        <input type="text" id="cliente_id" name="cliente_id">
+        <div class="ayuda">El ID aparece en el mensaje al registrar el cliente.</div>
 
-        <label for="apellido">Apellido</label>
-        <input type="text" id="apellido" name="apellido">
+        <label for="patente">Patente</label>
+        <input type="text" id="patente" name="patente">
 
-        <label for="telefono">Teléfono</label>
-        <input type="text" id="telefono" name="telefono">
+        <label for="marca">Marca</label>
+        <input type="text" id="marca" name="marca">
 
-        <label for="direccion">Dirección</label>
-        <input type="text" id="direccion" name="direccion">
+        <label for="modelo">Modelo</label>
+        <input type="text" id="modelo" name="modelo">
 
-        <button type="submit">Registrar cliente</button>
+        <label for="anio">Año</label>
+        <input type="text" id="anio" name="anio">
+
+        <button type="submit">Registrar moto</button>
     </form>
 
     <div id="resultado"></div>
 
     <script>
-        const form = document.getElementById("formCliente");
+        const form = document.getElementById("formMoto");
         const resultado = document.getElementById("resultado");
 
         form.addEventListener("submit", async function (evento) {
             evento.preventDefault();
 
-            // Se arma el cuerpo de la solicitud igual que un formulario clasico,
+            // Mismo mecanismo que el formulario de clientes: cuerpo form-urlencoded
             // para que Flask lo reciba con request.form
             const datos = new URLSearchParams();
-            datos.append("nombre", document.getElementById("nombre").value);
-            datos.append("apellido", document.getElementById("apellido").value);
-            datos.append("telefono", document.getElementById("telefono").value);
-            datos.append("direccion", document.getElementById("direccion").value);
+            datos.append("cliente_id", document.getElementById("cliente_id").value);
+            datos.append("patente", document.getElementById("patente").value);
+            datos.append("marca", document.getElementById("marca").value);
+            datos.append("modelo", document.getElementById("modelo").value);
+            datos.append("anio", document.getElementById("anio").value);
 
             try {
-                const respuesta = await fetch("/clientes", {
+                const respuesta = await fetch("/motos", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: datos

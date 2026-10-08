@@ -4,6 +4,7 @@ from functools import wraps
 from werkzeug.security import check_password_hash
 import mysql.connector
 import os
+from datetime import date
 from dotenv import load_dotenv
 
 # Cargar las variables definidas en el archivo .env
@@ -175,6 +176,103 @@ def iniciar_sesion():
 def cerrar_sesion():
     session.clear()
     return redirect(url_for("login"))
+
+
+# ---------------------------------------------------------------------------
+# MOTOS: cada moto pertenece a un cliente ya registrado (cliente_id -> clientes.id)
+# ---------------------------------------------------------------------------
+
+def es_entero(valor):
+    # Solo digitos ASCII (evita que caracteres raros pasen como numeros)
+    return valor.isascii() and valor.isdigit()
+
+# Ruta que sirve el formulario de registro de motos (frontend)
+@app.route("/motos/nueva", methods=["GET"])
+@login_requerido
+def formulario_motos():
+    return render_template("motos.html")
+
+@app.route("/motos", methods=["POST"])
+@login_requerido
+def registrar_moto():
+    # 1) Recibir los datos enviados desde el formulario
+    cliente_id = request.form.get("cliente_id", "").strip()
+    patente = request.form.get("patente", "").strip()
+    marca = request.form.get("marca", "").strip()
+    modelo = request.form.get("modelo", "").strip()
+    anio = request.form.get("anio", "").strip()
+
+    # 2) Validar que ningun campo obligatorio este vacio
+    campos_faltantes = []
+    if not cliente_id:
+        campos_faltantes.append("cliente_id")
+    if not patente:
+        campos_faltantes.append("patente")
+    if not marca:
+        campos_faltantes.append("marca")
+    if not modelo:
+        campos_faltantes.append("modelo")
+    if not anio:
+        campos_faltantes.append("anio")
+
+    if campos_faltantes:
+        return jsonify({
+            "error": "Faltan campos obligatorios.",
+            "campos_faltantes": campos_faltantes
+        }), 400
+
+    # 3) Validar formatos
+    if not es_entero(cliente_id) or int(cliente_id) < 1:
+        return jsonify({"error": "El cliente_id debe ser un numero entero positivo."}), 400
+
+    # La patente se guarda en mayusculas y sin espacios ni guiones
+    patente = patente.upper().replace(" ", "").replace("-", "")
+    if not (patente.isascii() and patente.isalnum() and 5 <= len(patente) <= 10):
+        return jsonify({"error": "La patente debe tener entre 5 y 10 letras o numeros."}), 400
+
+    anio_maximo = date.today().year + 1
+    if not es_entero(anio) or not (1950 <= int(anio) <= anio_maximo):
+        return jsonify({"error": f"El anio debe ser un numero entre 1950 y {anio_maximo}."}), 400
+
+    # Manejo de error si falla la conexion a MySQL (por ejemplo, servidor caido)
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        # 4) Verificar que el cliente exista
+        cursor.execute("SELECT id FROM clientes WHERE id = %s", (int(cliente_id),))
+        if not cursor.fetchone():
+            return jsonify({"error": "No existe un cliente con ese ID."}), 404
+
+        # 5) Verificar que la patente no este ya registrada
+        cursor.execute("SELECT id FROM motos WHERE patente = %s", (patente,))
+        if cursor.fetchone():
+            return jsonify({"error": "Ya existe una moto registrada con esa patente."}), 409
+
+        # 6) Insertar la moto
+        cursor.execute(
+            "INSERT INTO motos (cliente_id, patente, marca, modelo, anio) VALUES (%s, %s, %s, %s, %s)",
+            (int(cliente_id), patente, marca, modelo, int(anio))
+        )
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Moto registrada correctamente.",
+            "id": cursor.lastrowid
+        }), 201
+
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo al procesar el registro de moto: {error}")
+        return jsonify({"error": "No se pudo completar el registro. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
 
 
 if __name__ == "__main__":
