@@ -95,7 +95,59 @@
             boton.textContent = "Marcar retirada";
             boton.addEventListener("click", () => completar(r, boton));
             td.appendChild(boton);
+            const editar = document.createElement("button");
+            editar.type = "button";
+            editar.className = "boton-tabla";
+            editar.textContent = "Editar";
+            editar.addEventListener("click", () => editarFila(td.parentElement, r));
+            td.appendChild(editar);
             return td;
+        }
+
+        // Edicion en la misma fila: solo trabajo y monto de un servicio en proceso
+        function editarFila(tr, r) {
+            const celdas = tr.querySelectorAll("td");
+            const trabajo = document.createElement("input");
+            trabajo.value = r.trabajo;
+            const monto = document.createElement("input");
+            monto.value = String(r.monto).replace(".", ",");
+            monto.inputMode = "decimal";
+            celdas[4].textContent = ""; celdas[4].appendChild(trabajo);
+            celdas[5].textContent = ""; celdas[5].appendChild(monto);
+            celdas[8].textContent = "";
+            const guardar = document.createElement("button");
+            guardar.type = "button"; guardar.className = "boton-tabla"; guardar.textContent = "Guardar";
+            guardar.addEventListener("click", async () => {
+                const datos = new URLSearchParams();
+                datos.append("descripcion", trabajo.value);
+                datos.append("costo", monto.value);
+                try {
+                    const respuesta = await fetch("/panel/" + r.id + "/editar", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: datos
+                    });
+                    const data = await respuesta.json();
+                    resultado.style.display = "block";
+                    if (respuesta.ok) {
+                        resultado.className = "exito";
+                        resultado.textContent = data.mensaje;
+                        await cargarPanel();
+                    } else {
+                        resultado.className = "error";
+                        resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));
+                    }
+                } catch (err) {
+                    resultado.style.display = "block";
+                    resultado.className = "error";
+                    resultado.textContent = "No se pudo conectar con el servidor.";
+                }
+            });
+            const cancelar = document.createElement("button");
+            cancelar.type = "button"; cancelar.className = "boton-tabla"; cancelar.textContent = "Cancelar";
+            cancelar.addEventListener("click", () => cargarPanel());
+            celdas[8].appendChild(guardar);
+            celdas[8].appendChild(cancelar);
         }
 
         async function completar(r, boton) {

@@ -541,6 +541,105 @@ def datos_clientes():
         conexion.close()
 
 
+# ---------------------------------------------------------------------------
+# MODIFICAR Y BORRAR (etapa 4)
+# Reglas: se corrigen telefono y direccion de un cliente, y el trabajo y monto de un
+# servicio EN PROCESO. Solo se borra un cliente que no tiene motos (no se pierde historial).
+# ---------------------------------------------------------------------------
+
+# Ejecuta una operacion de escritura con el manejo de errores comun del proyecto.
+# "operacion" recibe el cursor y devuelve (respuesta_json, codigo_http); si el codigo es 200 se confirma.
+def ejecutar_escritura(operacion, texto_error):
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo completar la operacion. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+    try:
+        cuerpo, codigo = operacion(cursor)
+        if codigo == 200:
+            conexion.commit()
+        return jsonify(cuerpo), codigo
+    except mysql.connector.Error as error:
+        conexion.rollback()
+        print(f"[ERROR INTERNO] {texto_error}: {error}")
+        return jsonify({"error": "No se pudo completar la operacion. Intente nuevamente mas tarde."}), 500
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route("/clientes/<int:cliente_id>/editar", methods=["POST"])
+@login_requerido
+def editar_cliente(cliente_id):
+    telefono = request.form.get("telefono", "").strip()
+    direccion = request.form.get("direccion", "").strip()
+
+    campos_faltantes = [c for c, v in (("telefono", telefono), ("direccion", direccion)) if not v]
+    if campos_faltantes:
+        return jsonify({"error": "Faltan campos obligatorios.", "campos_faltantes": campos_faltantes}), 400
+    if not telefono.isdigit():
+        return jsonify({"error": "El telefono debe contener solo numeros."}), 400
+
+    def operacion(cursor):
+        cursor.execute("SELECT id FROM clientes WHERE id = %s", (cliente_id,))
+        if cursor.fetchone() is None:
+            return {"error": "El cliente indicado no existe."}, 404
+        cursor.execute(
+            "UPDATE clientes SET telefono = %s, direccion = %s WHERE id = %s",
+            (telefono, direccion, cliente_id)
+        )
+        return {"mensaje": "Cliente modificado correctamente."}, 200
+
+    return ejecutar_escritura(operacion, "Fallo al modificar el cliente")
+
+@app.route("/clientes/<int:cliente_id>/borrar", methods=["POST"])
+@login_requerido
+def borrar_cliente(cliente_id):
+    def operacion(cursor):
+        cursor.execute("SELECT id FROM clientes WHERE id = %s", (cliente_id,))
+        if cursor.fetchone() is None:
+            return {"error": "El cliente indicado no existe."}, 404
+        cursor.execute("SELECT COUNT(*) FROM motos WHERE cliente_id = %s", (cliente_id,))
+        if cursor.fetchone()[0] > 0:
+            return {"error": "No se puede borrar: el cliente tiene motos registradas."}, 409
+        cursor.execute("DELETE FROM clientes WHERE id = %s", (cliente_id,))
+        return {"mensaje": "Cliente borrado correctamente."}, 200
+
+    return ejecutar_escritura(operacion, "Fallo al borrar el cliente")
+
+@app.route("/panel/<int:servicio_id>/editar", methods=["POST"])
+@login_requerido
+def editar_servicio(servicio_id):
+    descripcion = request.form.get("descripcion", "").strip()
+    costo = request.form.get("costo", "").strip()
+
+    campos_faltantes = [c for c, v in (("descripcion", descripcion), ("costo", costo)) if not v]
+    if campos_faltantes:
+        return jsonify({"error": "Faltan campos obligatorios.", "campos_faltantes": campos_faltantes}), 400
+    if not (3 <= len(descripcion) <= 200):
+        return jsonify({"error": "La descripcion debe tener entre 3 y 200 caracteres."}), 400
+    costo_texto = costo.replace(",", ".")
+    if not re.fullmatch(r"\d{1,8}(\.\d{1,2})?", costo_texto) or Decimal(costo_texto) <= 0:
+        return jsonify({"error": "El costo debe ser un numero mayor a 0, sin separador de miles y con hasta 2 decimales (ej: 15000 o 15000,50)."}), 400
+
+    def operacion(cursor):
+        cursor.execute("SELECT estado FROM servicios WHERE id = %s", (servicio_id,))
+        fila = cursor.fetchone()
+        if fila is None:
+            return {"error": "El servicio indicado no existe."}, 404
+        if fila[0] == "Completo":
+            return {"error": "No se puede modificar un servicio ya completo."}, 409
+        cursor.execute(
+            "UPDATE servicios SET descripcion = %s, costo = %s WHERE id = %s",
+            (descripcion, Decimal(costo_texto), servicio_id)
+        )
+        return {"mensaje": "Servicio modificado correctamente."}, 200
+
+    return ejecutar_escritura(operacion, "Fallo al modificar el servicio")
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

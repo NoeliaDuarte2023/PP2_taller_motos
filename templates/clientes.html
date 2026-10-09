@@ -70,7 +70,66 @@
             return td;
         }
 
+        function botonTabla(texto, accion) {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "boton-tabla";
+            b.textContent = texto;
+            b.addEventListener("click", accion);
+            return b;
+        }
+
+        function mostrar(clase, texto) {
+            resultado.style.display = "block";
+            resultado.className = clase;
+            resultado.textContent = texto;
+        }
+
+        async function enviar(url, datos) {
+            try {
+                const respuesta = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: datos || ""
+                });
+                const data = await respuesta.json();
+                if (respuesta.ok) {
+                    mostrar("exito", data.mensaje);
+                    await cargarClientes();
+                } else {
+                    mostrar("error", "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data)));
+                }
+            } catch (err) {
+                mostrar("error", "No se pudo conectar con el servidor.");
+            }
+        }
+
+        // Edicion en la misma fila: solo telefono y direccion
+        function editarFila(tr, c) {
+            const celdas = tr.querySelectorAll("td");
+            const tel = document.createElement("input");
+            tel.value = c.telefono; tel.inputMode = "numeric";
+            const dir = document.createElement("input");
+            dir.value = c.direccion;
+            celdas[1].textContent = ""; celdas[1].appendChild(tel);
+            celdas[2].textContent = ""; celdas[2].appendChild(dir);
+            celdas[4].textContent = "";
+            celdas[4].appendChild(botonTabla("Guardar", () => {
+                const datos = new URLSearchParams();
+                datos.append("telefono", tel.value);
+                datos.append("direccion", dir.value);
+                enviar("/clientes/" + c.id + "/editar", datos);
+            }));
+            celdas[4].appendChild(botonTabla("Cancelar", () => cargarClientes()));
+        }
+
+        function borrarCliente(c) {
+            if (!confirm("¿Borrar a " + c.nombre + " " + c.apellido + "? Esta acción no se puede deshacer.")) return;
+            enviar("/clientes/" + c.id + "/borrar");
+        }
+
         async function cargarClientes() {
+            filas.innerHTML = "";
             try {
                 const respuesta = await fetch("/clientes/datos");
                 const data = await respuesta.json();
@@ -112,11 +171,19 @@
                     tr.appendChild(celda(String(c.motos), "num"));
 
                     const accion = document.createElement("td");
+                    accion.className = "acciones-fila";
                     const enlace = document.createElement("a");
                     enlace.className = "boton-tabla";
                     enlace.href = "/motos/nueva?cliente_id=" + encodeURIComponent(c.id);
                     enlace.textContent = "Agregar moto";
                     accion.appendChild(enlace);
+                    accion.appendChild(botonTabla("Editar", () => editarFila(tr, c)));
+                    const borrar = botonTabla("Borrar", () => borrarCliente(c));
+                    if (c.motos > 0) {
+                        borrar.disabled = true;
+                        borrar.title = "No se puede borrar: tiene motos registradas";
+                    }
+                    accion.appendChild(borrar);
                     tr.appendChild(accion);
                     filas.appendChild(tr);
                 });
