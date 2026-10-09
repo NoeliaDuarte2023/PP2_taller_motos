@@ -291,6 +291,20 @@ button:active { transform: translateY(1px); }
 .boton-tabla:hover { background: var(--amarillo); }
 .boton-tabla:disabled { opacity: .5; cursor: default; }
 
+a.boton-tabla { display: inline-flex; align-items: center; text-decoration: none; }
+.fila-nueva, .tabla tbody tr.fila-nueva:hover { background: #fff8dc; }
+.etiqueta-nuevo {
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--acero);
+    background: var(--amarillo);
+    border-radius: 99px;
+}
+.boton--bloque { margin-top: 10px; }
+.resumen-carga { margin: 6px 0; }
+
 .vacio {
     display: flex;
     flex-direction: column;
@@ -316,3 +330,15 @@ button:active { transform: translateY(1px); }
 @media (prefers-reduced-motion: reduce) {
     button:active { transform: none; }
 }
+
+select {
+    width: 100%;
+    height: 46px;
+    padding: 0 12px;
+    font: inherit;
+    color: inherit;
+    background: #fff;
+    border: 1.5px solid var(--campo);
+    border-radius: 4px;
+}
+select:disabled { background: var(--chapa); }

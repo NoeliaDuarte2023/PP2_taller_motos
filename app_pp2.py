@@ -495,6 +495,52 @@ def completar_servicio(servicio_id):
         conexion.close()
 
 
+# ---------------------------------------------------------------------------
+# LISTA DE CLIENTES: permite ver lo cargado y elegir un cliente para agregarle una moto.
+# ---------------------------------------------------------------------------
+
+# Pantalla de la lista de clientes (frontend)
+@app.route("/clientes/lista", methods=["GET"])
+@login_requerido
+def lista_clientes():
+    return render_template("clientes.html")
+
+# Datos de la lista de clientes en formato JSON
+@app.route("/clientes/datos", methods=["GET"])
+@login_requerido
+def datos_clientes():
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo cargar la lista. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        # Los clientes mas recientes primero, con la cantidad de motos de cada uno
+        cursor.execute(
+            "SELECT c.id, c.nombre, c.apellido, c.telefono, c.direccion, COUNT(m.id) "
+            "FROM clientes c LEFT JOIN motos m ON m.cliente_id = c.id "
+            "GROUP BY c.id, c.nombre, c.apellido, c.telefono, c.direccion "
+            "ORDER BY c.id DESC"
+        )
+        clientes = [
+            {"id": f[0], "nombre": f[1], "apellido": f[2], "telefono": f[3],
+             "direccion": f[4], "motos": int(f[5])}
+            for f in cursor.fetchall()
+        ]
+        return jsonify({"clientes": clientes}), 200
+
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo al consultar clientes: {error}")
+        return jsonify({"error": "No se pudo cargar la lista. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

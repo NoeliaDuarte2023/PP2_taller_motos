@@ -11,6 +11,7 @@
         <div class="barra__marca"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#f5b800" stroke-width="4"/><circle cx="16" cy="16" r="3.2" fill="#f5b800"/><g stroke="#f5b800" stroke-width="1.6" stroke-linecap="round"><path d="M16 4v8M16 20v8M4 16h8M20 16h8"/></g></svg><span>Taller de Motos</span></div>
         <nav class="barra__nav">
             <a href="/panel">Panel</a>
+            <a href="/clientes/lista">Clientes</a>
             <a href="/logout">Cerrar sesión</a>
         </nav>
     </header>
@@ -26,9 +27,11 @@
             <p class="bajada">Al guardar, pasás directo a cargar el servicio de esta moto.</p>
 
             <form id="formMoto">
-                <label for="cliente_id">ID del cliente</label>
-                <input type="text" id="cliente_id" name="cliente_id" inputmode="numeric">
-                <div class="ayuda">El ID aparece en el mensaje al registrar el cliente.</div>
+                <label for="cliente_id">Cliente (dueño de la moto)</label>
+                <select id="cliente_id" name="cliente_id">
+                    <option value="">Cargando clientes...</option>
+                </select>
+                <div class="ayuda">Elegí el dueño. Si el cliente es nuevo, primero registralo desde el panel.</div>
 
                 <label for="patente">Patente</label>
                 <input type="text" id="patente" name="patente" autocomplete="off">
@@ -59,15 +62,37 @@
         const form = document.getElementById("formMoto");
         const resultado = document.getElementById("resultado");
 
-        // Flujo guiado: si se llega desde el alta de un cliente, el ID viene en la URL
+        // Carga los clientes en el selector. Si se llega desde el alta de un cliente
+        // (o desde "Agregar moto"), el ID viene en la URL y queda elegido.
         const idUrl = new URLSearchParams(window.location.search).get("cliente_id");
-        if (idUrl && /^[0-9]+$/.test(idUrl)) {
-            const campo = document.getElementById("cliente_id");
-            campo.value = idUrl;
-            campo.readOnly = true;
-            document.querySelector("#formMoto .ayuda").textContent =
-                "Cliente cargado automaticamente desde el paso anterior.";
+        const selector = document.getElementById("cliente_id");
+
+        async function cargarClientes() {
+            try {
+                const respuesta = await fetch("/clientes/datos");
+                const data = await respuesta.json();
+                if (!respuesta.ok) {
+                    selector.innerHTML = "";
+                    selector.add(new Option("No se pudo cargar la lista de clientes", ""));
+                    return;
+                }
+                selector.innerHTML = "";
+                selector.add(new Option(data.clientes.length ? "Elegí un cliente..." : "Todavía no hay clientes", ""));
+                data.clientes.forEach(c => {
+                    selector.add(new Option(c.nombre + " " + c.apellido + " (" + c.telefono + ")", String(c.id)));
+                });
+                if (idUrl && /^[0-9]+$/.test(idUrl)) {
+                    selector.value = idUrl;
+                    selector.disabled = true;   // viene del paso anterior: no se cambia
+                    document.querySelector("#formMoto .ayuda").textContent =
+                        "Cliente elegido desde el paso anterior.";
+                }
+            } catch (err) {
+                selector.innerHTML = "";
+                selector.add(new Option("No se pudo conectar con el servidor", ""));
+            }
         }
+        cargarClientes();
 
         form.addEventListener("submit", async function (evento) {
             evento.preventDefault();

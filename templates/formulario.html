@@ -11,6 +11,7 @@
         <div class="barra__marca"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#f5b800" stroke-width="4"/><circle cx="16" cy="16" r="3.2" fill="#f5b800"/><g stroke="#f5b800" stroke-width="1.6" stroke-linecap="round"><path d="M16 4v8M16 20v8M4 16h8M20 16h8"/></g></svg><span>Taller de Motos</span></div>
         <nav class="barra__nav">
             <a href="/panel">Panel</a>
+            <a href="/clientes/lista">Clientes</a>
             <a href="/logout">Cerrar sesión</a>
         </nav>
     </header>
@@ -48,6 +49,7 @@
 
             <div id="resultado" role="status" aria-live="polite"></div>
         </div>
+
     </main>
 
     <script>
@@ -77,12 +79,28 @@
                 resultado.style.display = "block";
                 if (respuesta.ok) {
                     resultado.className = "exito";
-                    resultado.textContent = "Éxito (" + respuesta.status + "): " + data.mensaje + " ID: " + data.id +
-                        ". Pasando al registro de la moto...";
+                    resultado.textContent = "";
+                    // Resumen de lo que se acaba de cargar
+                    const titulo = document.createElement("strong");
+                    titulo.textContent = "Cliente cargado correctamente (ID " + data.id + ")";
+                    const detalle = document.createElement("div");
+                    detalle.className = "resumen-carga";
+                    [["Nombre", document.getElementById("nombre").value + " " + document.getElementById("apellido").value],
+                     ["Teléfono", document.getElementById("telefono").value],
+                     ["Dirección", document.getElementById("direccion").value]].forEach(par => {
+                        const linea = document.createElement("div");
+                        linea.textContent = par[0] + ": " + par[1];
+                        detalle.appendChild(linea);
+                    });
+                    const pie = document.createElement("div");
+                    pie.textContent = "Pasando al registro de la moto en unos segundos...";
+                    resultado.appendChild(titulo);
+                    resultado.appendChild(detalle);
+                    resultado.appendChild(pie);
                     // Flujo guiado: se pasa solo a cargar la moto de este cliente
                     setTimeout(function () {
                         window.location.href = "/motos/nueva?cliente_id=" + encodeURIComponent(data.id);
-                    }, 2500);
+                    }, 5000);
                 } else {
                     resultado.className = "error";
                     resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));
