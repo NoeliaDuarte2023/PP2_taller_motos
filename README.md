@@ -310,8 +310,23 @@ Todas las rutas, salvo `/login`, requieren sesión iniciada. Sin sesión, las pa
 9. **Búsqueda y filtros:** en el panel, escribir una patente o apellido y cambiar el filtro de estado.
 10. **Historial:** hacer clic en una patente del panel; debe mostrar los datos de la moto, sus servicios y el total.
 
-### Limitaciones conocidas
+### Actualización de cierre del MVP
 
-- No existe una pantalla de listado de motos; las motos se ven a través de sus servicios, por lo que no se puede borrar una moto sin servicios.
+**Versión estable:** el tag `v1.0-mvp` marca la versión cerrada del MVP (commit `5eb8ca4`). El tag `v0.9-linea-base` marca el punto de partida antes de las etapas de mejora (commit `4e7157f`). Para ver la versión estable: `git checkout v1.0-mvp`.
+
+**Pantalla «Motos» (listado):** muestra todas las motos registradas con su dueño, teléfono, cantidad de servicios y cuántos están en proceso. Tiene buscador (patente, marca, modelo o dueño) y la patente abre el historial de la moto. Se accede desde la barra superior.
+
+| Ruta | Método | Función |
+|---|---|---|
+| `/motos/lista` | GET | Ventana «Motos» |
+| `/motos/datos` | GET | Listado de motos con dueño y cantidad de servicios (JSON) |
+
+**Base de datos reproducible:** el script `sql/esquema_completo.sql` crea la base `pp2_taller_motos` completa (usuarios, clientes, motos y servicios) solo con estructura, sin datos ni credenciales. Con una base nueva, alcanza con ejecutar ese script; `sql/cambios_etapa_panel.sql` solo se usa para actualizar una base anterior a las etapas del panel.
+
+**Datos de prueba:** todos los clientes, motos y servicios usados en las pruebas y en la demostración son ficticios.
+
+**Limitaciones conocidas (reemplaza la lista anterior):**
+
+- No hay borrado de motos ni de servicios.
 - Un servicio Completo no puede corregirse.
-- No hay borrado de servicios ni de motos.
+
