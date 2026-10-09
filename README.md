@@ -227,3 +227,85 @@ En todos los casos, el equipo revisó críticamente el código generado, lo prob
 Las capturas de pantalla de las pruebas funcionales (TP11) y de la integración (TP10) se encuentran en la carpeta de entregas del grupo. El recorrido de demostración se detalla en `GUION_DEMO.md`.
 
 **Repositorio:** https://github.com/NoeliaDuarte2023/PP2_taller_motos
+# Cambios posteriores al TP12
+
+Esta sección documenta todo lo que se agregó o modificó **después de la entrega del TP12** (versión de la rama `main`, que solo registraba clientes). Los cambios están en la rama `feature-mvp`; `main` se mantiene como versión estable de la demostración del TP12. Todos los datos de prueba son ficticios.
+
+### Resumen de cambios
+
+| Etapa | Commit | Qué se agregó |
+|---|---|---|
+| Login | `b83f377` | Inicio de sesión con usuario y contraseña (hash `scrypt`), sesión de Flask y cierre de sesión. Las rutas quedan protegidas. |
+| Motos | `f7751ec` | Registro de motos asociadas a un cliente (patente única, marca, modelo, año). |
+| Servicios y flujo guiado | `a2f52fb` | Registro de servicios por moto. Flujo guiado: cliente → moto → servicio, con pasaje automático entre pantallas. |
+| Diseño | `e999b2c` | Hoja de estilos única (`static/estilos.css`), barra superior, indicador de pasos y diseño adaptable a celular. |
+| Etapa 1: panel | `5e9a0c3` | Pantalla principal «Motos en el taller» después del login. |
+| Etapa 2: retiro | `e5f1fea` | Botón «Marcar retirada»: el servicio pasa a **Completo** y guarda fecha y hora de retiro. |
+| Etapa 3: clientes | `66e569f` | Ventana «Clientes» con listado y cantidad de motos; «Agregar moto» desde la lista; selector de dueño al registrar moto. |
+| Etapa 4: modificar y borrar | `b1e6d90` | Editar teléfono y dirección de un cliente; editar trabajo y monto de un servicio en proceso; borrar clientes sin motos. |
+
+### Cambios en la base de datos
+
+Tablas agregadas después del TP12 (la tabla `clientes` no cambió):
+
+- `usuarios` (`id`, `usuario`, `password_hash`)
+- `motos` (`id`, `cliente_id` FK, `patente` única y normalizada, `marca`, `modelo`, `anio`)
+- `servicios` (`id`, `moto_id` FK, `fecha`, `descripcion`, `costo`)
+
+Cambio de la etapa 1 sobre `servicios` (script en `sql/cambios_etapa_panel.sql`, se ejecuta **una sola vez** en phpMyAdmin):
+
+```sql
+ALTER TABLE servicios
+    ADD COLUMN ingreso DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'En proceso',
+    ADD COLUMN retiro DATETIME NULL;
+```
+
+Los servicios cargados antes del cambio quedan «En proceso», con la fecha y hora en que se ejecutó el script.
+
+### Pantallas y rutas nuevas
+
+| Ruta | Método | Función |
+|---|---|---|
+| `/login`, `/logout` | GET / POST | Inicio y cierre de sesión |
+| `/panel` | GET | Panel «Motos en el taller» |
+| `/panel/datos` | GET | Datos del panel (JSON) |
+| `/panel/<id>/completar` | POST | Marca el servicio como Completo y guarda el retiro |
+| `/panel/<id>/editar` | POST | Modifica trabajo y monto de un servicio en proceso |
+| `/clientes/lista` | GET | Ventana «Clientes» |
+| `/clientes/datos` | GET | Listado de clientes con cantidad de motos (JSON) |
+| `/clientes/<id>/editar` | POST | Modifica teléfono y dirección |
+| `/clientes/<id>/borrar` | POST | Borra un cliente sin motos |
+| `/motos/nueva`, `/motos` | GET / POST | Pantalla y alta de motos |
+| `/servicios/nueva`, `/servicios` | GET / POST | Pantalla y alta de servicios |
+
+Todas las rutas, salvo `/login`, requieren sesión iniciada. Sin sesión, las pantallas redirigen al login y las operaciones POST responden `401`.
+
+### Reglas de negocio
+
+- **Estados de un servicio:** «En proceso» mientras la moto está en reparación y «Completo» cuando fue retirada. La moto y el cliente siguen registrados.
+- **Orden del panel:** primero las motos en proceso y, dentro de cada grupo, las más recientes.
+- **Un servicio Completo no se modifica** (responde `409`). Tampoco se puede marcar Completo dos veces (`409`).
+- **Modificar:** de un cliente solo se cambian teléfono (solo números) y dirección; de un servicio, el trabajo (3 a 200 caracteres) y el monto (mayor a 0, hasta 2 decimales).
+- **Borrar:** solo un cliente que no tiene motos. Con motos asociadas el botón está deshabilitado y el servidor responde `409`, para no perder el historial.
+- **Duplicados:** clientes por nombre y apellido; motos por patente; servicios por moto, fecha y descripción.
+- **Errores internos:** el usuario ve un mensaje genérico y el detalle técnico queda solo en el log del servidor.
+
+### Cómo probar los cambios
+
+1. Iniciar Apache y MySQL en XAMPP y ejecutar el script `sql/cambios_etapa_panel.sql` (una sola vez).
+2. Iniciar la aplicación con `python app_pp2.py` e ingresar a `http://localhost:5000/login`.
+3. **Panel:** después del login se abre «Motos en el taller». Debe mostrar estado, patente, moto, dueño, trabajo, monto, ingreso y días en el taller.
+4. **Flujo completo:** «Registrar cliente nuevo» → moto → servicio. Al terminar vuelve al panel y la moto aparece arriba como «En proceso».
+5. **Retiro:** «Marcar retirada» → confirmar. El estado pasa a «Completo» y se muestra la fecha de retiro.
+6. **Clientes:** en «Clientes», «Agregar moto» abre el registro de moto con el dueño ya elegido.
+7. **Modificar:** «Editar» en un cliente (teléfono y dirección) o en una moto en proceso (trabajo y monto).
+8. **Borrar:** «Borrar» funciona solo en clientes con 0 motos.
+
+### Limitaciones conocidas
+
+- No existe una pantalla de listado de motos; las motos se ven a través de sus servicios, por lo que no se puede borrar una moto sin servicios.
+- Todavía no hay filtros por estado ni búsqueda por patente o dueño (pendiente de decisión del grupo).
+- No hay historial de servicios por moto como pantalla propia.
+- Un servicio Completo no puede corregirse.
+
