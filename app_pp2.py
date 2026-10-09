@@ -457,6 +457,44 @@ def datos_panel():
         conexion.close()
 
 
+# Marca un servicio como retirado: pasa a "Completo" y guarda la fecha y hora de retiro.
+# La moto y el cliente siguen registrados; solo cambia el estado del servicio.
+@app.route("/panel/<int:servicio_id>/completar", methods=["POST"])
+@login_requerido
+def completar_servicio(servicio_id):
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo completar la operacion. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        cursor.execute("SELECT estado FROM servicios WHERE id = %s", (servicio_id,))
+        fila = cursor.fetchone()
+        if fila is None:
+            return jsonify({"error": "El servicio indicado no existe."}), 404
+        if fila[0] == "Completo":
+            return jsonify({"error": "Este servicio ya estaba marcado como completo."}), 409
+
+        cursor.execute(
+            "UPDATE servicios SET estado = 'Completo', retiro = %s WHERE id = %s",
+            (datetime.now(), servicio_id)
+        )
+        conexion.commit()
+        return jsonify({"mensaje": "Moto retirada. El servicio quedo como Completo."}), 200
+
+    except mysql.connector.Error as error:
+        conexion.rollback()
+        print(f"[ERROR INTERNO] Fallo al completar el servicio: {error}")
+        return jsonify({"error": "No se pudo completar la operacion. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

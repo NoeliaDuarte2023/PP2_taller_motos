@@ -276,6 +276,21 @@ button:active { transform: translateY(1px); }
 .estado--proceso { background: #fff1c2; color: #5a4300; border: 1.5px solid var(--amarillo-oscuro); }
 .estado--completo { background: var(--exito-fondo); color: var(--exito); border: 1.5px solid var(--exito); }
 
+.boton-tabla {
+    width: auto;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+    white-space: nowrap;
+    color: var(--acero);
+    background: #fff;
+    border: 1.5px solid var(--acero);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.boton-tabla:hover { background: var(--amarillo); }
+.boton-tabla:disabled { opacity: .5; cursor: default; }
+
 .vacio {
     display: flex;
     flex-direction: column;

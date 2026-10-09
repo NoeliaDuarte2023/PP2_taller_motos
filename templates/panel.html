@@ -40,6 +40,7 @@
                             <th class="num">Monto</th>
                             <th>Ingreso</th>
                             <th class="num">Días</th>
+                            <th>Retiro</th>
                         </tr>
                     </thead>
                     <tbody id="filasPanel"></tbody>
@@ -80,7 +81,48 @@
             return td;
         }
 
+        // Ultima columna: boton para marcar el retiro, o la fecha si ya fue retirada
+        function celdaRetiro(r) {
+            const td = document.createElement("td");
+            if (r.estado === "Completo") {
+                td.textContent = r.retiro || "";
+                return td;
+            }
+            const boton = document.createElement("button");
+            boton.type = "button";
+            boton.className = "boton-tabla";
+            boton.textContent = "Marcar retirada";
+            boton.addEventListener("click", () => completar(r, boton));
+            td.appendChild(boton);
+            return td;
+        }
+
+        async function completar(r, boton) {
+            if (!confirm("¿Confirmás que " + r.moto + " (" + r.patente + ") fue retirada por " + r.dueno + "?")) return;
+            boton.disabled = true;
+            try {
+                const respuesta = await fetch("/panel/" + r.id + "/completar", { method: "POST" });
+                const data = await respuesta.json();
+                resultado.style.display = "block";
+                if (respuesta.ok) {
+                    resultado.className = "exito";
+                    resultado.textContent = data.mensaje;
+                    await cargarPanel();
+                } else {
+                    resultado.className = "error";
+                    resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));
+                    boton.disabled = false;
+                }
+            } catch (err) {
+                resultado.style.display = "block";
+                resultado.className = "error";
+                resultado.textContent = "No se pudo conectar con el servidor.";
+                boton.disabled = false;
+            }
+        }
+
         async function cargarPanel() {
+            filas.innerHTML = "";
             try {
                 const respuesta = await fetch("/panel/datos");
                 const data = await respuesta.json();
@@ -114,6 +156,7 @@
                     tr.appendChild(celda(formatoMonto.format(r.monto), "num"));
                     tr.appendChild(celda(r.ingreso));
                     tr.appendChild(celda(String(r.dias), "num"));
+                    tr.appendChild(celdaRetiro(r));
                     filas.appendChild(tr);
                 });
                 tabla.hidden = false;
