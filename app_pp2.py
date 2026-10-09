@@ -713,6 +713,56 @@ def datos_historial_moto(moto_id):
         conexion.close()
 
 
+# ---------------------------------------------------------------------------
+# LISTADO DE MOTOS: todas las motos registradas, tengan o no servicios.
+# ---------------------------------------------------------------------------
+
+# Pantalla del listado de motos (frontend)
+@app.route("/motos/lista", methods=["GET"])
+@login_requerido
+def lista_motos():
+    return render_template("motos_lista.html")
+
+# Datos del listado de motos en formato JSON
+@app.route("/motos/datos", methods=["GET"])
+@login_requerido
+def datos_motos():
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo cargar el listado. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        # LEFT JOIN con servicios: asi tambien aparecen las motos que todavia no tienen ninguno
+        cursor.execute(
+            "SELECT m.id, m.patente, m.marca, m.modelo, m.anio, c.nombre, c.apellido, c.telefono, "
+            "COUNT(s.id), COALESCE(SUM(CASE WHEN s.estado = 'En proceso' THEN 1 ELSE 0 END), 0) "
+            "FROM motos m "
+            "JOIN clientes c ON c.id = m.cliente_id "
+            "LEFT JOIN servicios s ON s.moto_id = m.id "
+            "GROUP BY m.id, m.patente, m.marca, m.modelo, m.anio, c.nombre, c.apellido, c.telefono "
+            "ORDER BY m.id DESC"
+        )
+        motos = [
+            {"id": f[0], "patente": f[1], "moto": f"{f[2]} {f[3]}", "anio": f[4],
+             "dueno": f"{f[5]} {f[6]}", "telefono": f[7],
+             "servicios": int(f[8]), "en_proceso": int(f[9])}
+            for f in cursor.fetchall()
+        ]
+        return jsonify({"motos": motos}), 200
+
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo al consultar las motos: {error}")
+        return jsonify({"error": "No se pudo cargar el listado. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

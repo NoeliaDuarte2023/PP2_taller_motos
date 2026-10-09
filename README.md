@@ -227,7 +227,9 @@ En todos los casos, el equipo revisó críticamente el código generado, lo prob
 Las capturas de pantalla de las pruebas funcionales (TP11) y de la integración (TP10) se encuentran en la carpeta de entregas del grupo. El recorrido de demostración se detalla en `GUION_DEMO.md`.
 
 **Repositorio:** https://github.com/NoeliaDuarte2023/PP2_taller_motos
-# Cambios posteriores al TP12
+
+
+## Cambios posteriores al TP12
 
 Esta sección documenta todo lo que se agregó o modificó **después de la entrega del TP12** (versión de la rama `main`, que solo registraba clientes). Los cambios están en la rama `feature-mvp`; `main` se mantiene como versión estable de la demostración del TP12. Todos los datos de prueba son ficticios.
 
@@ -243,6 +245,7 @@ Esta sección documenta todo lo que se agregó o modificó **después de la entr
 | Etapa 2: retiro | `e5f1fea` | Botón «Marcar retirada»: el servicio pasa a **Completo** y guarda fecha y hora de retiro. |
 | Etapa 3: clientes | `66e569f` | Ventana «Clientes» con listado y cantidad de motos; «Agregar moto» desde la lista; selector de dueño al registrar moto. |
 | Etapa 4: modificar y borrar | `b1e6d90` | Editar teléfono y dirección de un cliente; editar trabajo y monto de un servicio en proceso; borrar clientes sin motos. |
+| Etapa 5: búsqueda e historial | `4e7157f` | Filtro por estado y buscador en el panel; buscador en Clientes; historial de servicios de cada moto, con total. |
 
 ### Cambios en la base de datos
 
@@ -272,6 +275,8 @@ Los servicios cargados antes del cambio quedan «En proceso», con la fecha y ho
 | `/panel/datos` | GET | Datos del panel (JSON) |
 | `/panel/<id>/completar` | POST | Marca el servicio como Completo y guarda el retiro |
 | `/panel/<id>/editar` | POST | Modifica trabajo y monto de un servicio en proceso |
+| `/motos/<id>/historial` | GET | Historial de servicios de una moto |
+| `/motos/<id>/historial/datos` | GET | Datos de la moto, su dueño y sus servicios (JSON) |
 | `/clientes/lista` | GET | Ventana «Clientes» |
 | `/clientes/datos` | GET | Listado de clientes con cantidad de motos (JSON) |
 | `/clientes/<id>/editar` | POST | Modifica teléfono y dirección |
@@ -288,6 +293,7 @@ Todas las rutas, salvo `/login`, requieren sesión iniciada. Sin sesión, las pa
 - **Un servicio Completo no se modifica** (responde `409`). Tampoco se puede marcar Completo dos veces (`409`).
 - **Modificar:** de un cliente solo se cambian teléfono (solo números) y dirección; de un servicio, el trabajo (3 a 200 caracteres) y el monto (mayor a 0, hasta 2 decimales).
 - **Borrar:** solo un cliente que no tiene motos. Con motos asociadas el botón está deshabilitado y el servidor responde `409`, para no perder el historial.
+- **Panel:** se puede filtrar por estado (Todas / En proceso / Completas) y buscar por patente, dueño, moto o trabajo. La patente abre el historial de la moto. La ventana «Clientes» también tiene buscador (nombre, teléfono o dirección).
 - **Duplicados:** clientes por nombre y apellido; motos por patente; servicios por moto, fecha y descripción.
 - **Errores internos:** el usuario ve un mensaje genérico y el detalle técnico queda solo en el log del servidor.
 
@@ -301,11 +307,11 @@ Todas las rutas, salvo `/login`, requieren sesión iniciada. Sin sesión, las pa
 6. **Clientes:** en «Clientes», «Agregar moto» abre el registro de moto con el dueño ya elegido.
 7. **Modificar:** «Editar» en un cliente (teléfono y dirección) o en una moto en proceso (trabajo y monto).
 8. **Borrar:** «Borrar» funciona solo en clientes con 0 motos.
+9. **Búsqueda y filtros:** en el panel, escribir una patente o apellido y cambiar el filtro de estado.
+10. **Historial:** hacer clic en una patente del panel; debe mostrar los datos de la moto, sus servicios y el total.
 
 ### Limitaciones conocidas
 
 - No existe una pantalla de listado de motos; las motos se ven a través de sus servicios, por lo que no se puede borrar una moto sin servicios.
-- Todavía no hay filtros por estado ni búsqueda por patente o dueño (pendiente de decisión del grupo).
-- No hay historial de servicios por moto como pantalla propia.
 - Un servicio Completo no puede corregirse.
-
+- No hay borrado de servicios ni de motos.
