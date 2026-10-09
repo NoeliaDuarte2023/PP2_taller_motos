@@ -53,6 +53,7 @@ body {
     letter-spacing: .3px;
 }
 .barra__marca svg { width: 30px; height: 30px; flex: none; }
+.barra__nav { display: flex; gap: 8px; }
 .barra a {
     color: #fff;
     text-decoration: none;
@@ -209,6 +210,83 @@ button:active { transform: translateY(1px); }
 }
 #resultado.exito { background: var(--exito-fondo); color: var(--exito); border-color: var(--exito); }
 #resultado.error { background: var(--error-fondo); color: var(--error); border-color: var(--error); }
+
+/* ---------- Panel del taller ---------- */
+.contenido--ancho { max-width: 1120px; }
+.ancho .barra { padding-left: max(16px, calc((100% - 1120px) / 2)); padding-right: max(16px, calc((100% - 1120px) / 2)); }
+.panel__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.panel__cabecera .bajada { margin-bottom: 0; }
+.acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.boton {
+    display: inline-flex;
+    align-items: center;
+    height: 46px;
+    padding: 0 20px;
+    font-family: var(--fuente-titulo);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--acero);
+    background: var(--amarillo);
+    border: 2px solid var(--acero);
+    border-radius: 4px;
+    text-decoration: none;
+}
+.boton:hover { background: var(--amarillo-oscuro); }
+.boton--secundario { background: #fff; }
+.boton--secundario:hover { background: var(--chapa); }
+
+.tabla-contenedor { overflow-x: auto; }
+.tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+.tabla th, .tabla td {
+    padding: 11px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--borde);
+    vertical-align: middle;
+}
+.tabla th {
+    font-family: var(--fuente-titulo);
+    font-size: 16px;
+    font-weight: 600;
+    background: var(--chapa);
+    border-bottom: 2px solid var(--acero);
+    white-space: nowrap;
+}
+.tabla tbody tr:hover { background: #f6f7f8; }
+.tabla .num { text-align: right; white-space: nowrap; }
+
+.estado {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.estado--proceso { background: #fff1c2; color: #5a4300; border: 1.5px solid var(--amarillo-oscuro); }
+.estado--completo { background: var(--exito-fondo); color: var(--exito); border: 1.5px solid var(--exito); }
+
+.vacio {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 28px 20px;
+    text-align: center;
+    background: var(--chapa);
+    border: 1.5px dashed var(--campo);
+    border-radius: 6px;
+}
+.vacio[hidden], .tabla[hidden] { display: none; }
 
 /* ---------- Pantallas chicas ---------- */
 @media (max-width: 560px) {

@@ -133,7 +133,7 @@ def registrar_cliente():
 @app.route("/login", methods=["GET"])
 def login():
     if "usuario" in session:
-        return redirect(url_for("formulario_clientes"))
+        return redirect(url_for("panel"))
     return render_template("login.html")
 
 @app.route("/login", methods=["POST"])
@@ -382,6 +382,80 @@ def registrar_servicio():
     finally:
         cursor.close()
         conexion.close()
+
+
+# ---------------------------------------------------------------------------
+# PANEL: pantalla principal con las motos que estan (o estuvieron) en el taller.
+# Cada fila es un servicio (ingreso al taller) con su moto y su dueno.
+# ---------------------------------------------------------------------------
+
+# Pantalla del panel (frontend)
+@app.route("/panel", methods=["GET"])
+@login_requerido
+def panel():
+    return render_template("panel.html")
+
+def a_datetime(valor):
+    # MySQL devuelve datetime; se acepta tambien texto ISO (pruebas con otra base)
+    if valor is None or isinstance(valor, datetime):
+        return valor
+    return datetime.fromisoformat(str(valor))
+
+# Datos del panel en formato JSON (los pide el JavaScript de la pantalla)
+@app.route("/panel/datos", methods=["GET"])
+@login_requerido
+def datos_panel():
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo cargar el panel. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        # Primero las motos en proceso y, dentro de cada grupo, las mas recientes
+        cursor.execute(
+            "SELECT s.id, c.nombre, c.apellido, c.telefono, m.patente, m.marca, m.modelo, "
+            "s.descripcion, s.costo, s.ingreso, s.estado, s.retiro "
+            "FROM servicios s "
+            "JOIN motos m ON m.id = s.moto_id "
+            "JOIN clientes c ON c.id = m.cliente_id "
+            "ORDER BY (s.estado = 'En proceso') DESC, s.ingreso DESC"
+        )
+        filas = cursor.fetchall()
+
+        ahora = datetime.now()
+        registros = []
+        for (sid, nombre, apellido, telefono, patente, marca, modelo,
+             descripcion, costo, ingreso, estado, retiro) in filas:
+            ingreso = a_datetime(ingreso)
+            retiro = a_datetime(retiro)
+            fin = retiro or ahora
+            registros.append({
+                "id": sid,
+                "dueno": f"{nombre} {apellido}",
+                "telefono": telefono,
+                "patente": patente,
+                "moto": f"{marca} {modelo}",
+                "trabajo": descripcion,
+                "monto": float(costo),
+                "ingreso": ingreso.strftime("%d/%m/%Y %H:%M"),
+                "dias": max((fin.date() - ingreso.date()).days, 0),
+                "estado": estado,
+                "retiro": retiro.strftime("%d/%m/%Y %H:%M") if retiro else None,
+            })
+
+        return jsonify({"registros": registros}), 200
+
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo al consultar el panel: {error}")
+        return jsonify({"error": "No se pudo cargar el panel. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+
 
 
 if __name__ == "__main__":
