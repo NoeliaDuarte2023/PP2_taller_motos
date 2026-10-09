@@ -29,6 +29,15 @@
                 </div>
             </div>
 
+            <div class="filtros" id="filtros" hidden>
+                <input type="search" id="buscar" placeholder="Buscar por patente, dueño, moto o trabajo" aria-label="Buscar">
+                <select id="filtroEstado" aria-label="Filtrar por estado">
+                    <option value="">Todas</option>
+                    <option value="En proceso">En proceso</option>
+                    <option value="Completo">Completas</option>
+                </select>
+            </div>
+
             <div class="tabla-contenedor">
                 <table class="tabla" id="tablaPanel" hidden>
                     <thead>
@@ -48,6 +57,10 @@
                 </table>
             </div>
 
+            <div id="sinCoincidencias" class="vacio" hidden>
+                <strong>No hay resultados para ese filtro.</strong>
+                <span>Probá con otra patente o nombre, o elegí «Todas».</span>
+            </div>
             <div id="vacio" class="vacio" hidden>
                 <strong>Todavía no hay motos registradas.</strong>
                 <span>Registrá un cliente para empezar: después cargás su moto y el trabajo a realizar.</span>
@@ -73,6 +86,17 @@
             return td;
         }
 
+        // La patente lleva al historial de servicios de esa moto
+        function celdaPatente(r) {
+            const td = document.createElement("td");
+            const enlace = document.createElement("a");
+            enlace.href = "/motos/" + encodeURIComponent(r.moto_id) + "/historial";
+            enlace.textContent = r.patente;
+            enlace.title = "Ver historial de servicios de esta moto";
+            td.appendChild(enlace);
+            return td;
+        }
+
         function celdaEstado(estado) {
             const td = document.createElement("td");
             const marca = document.createElement("span");
@@ -85,6 +109,7 @@
         // Ultima columna: boton para marcar el retiro, o la fecha si ya fue retirada
         function celdaRetiro(r) {
             const td = document.createElement("td");
+            td.className = "acciones-fila";
             if (r.estado === "Completo") {
                 td.textContent = r.retiro || "";
                 return td;
@@ -174,6 +199,43 @@
             }
         }
 
+        let todos = [];
+
+        // Aplica la busqueda y el filtro de estado sobre los datos ya cargados
+        function dibujar() {
+            const texto = document.getElementById("buscar").value.trim().toLowerCase();
+            const estado = document.getElementById("filtroEstado").value;
+            const visibles = todos.filter(r =>
+                (estado === "" || r.estado === estado) &&
+                (texto === "" || [r.patente, r.dueno, r.moto, r.trabajo].join(" ").toLowerCase().includes(texto))
+            );
+
+            filas.innerHTML = "";
+            const enProceso = todos.filter(r => r.estado !== "Completo").length;
+            let resumenTexto = enProceso + " en proceso · " + (todos.length - enProceso) + " completas";
+            if (visibles.length !== todos.length) resumenTexto += " · mostrando " + visibles.length;
+            resumen.textContent = resumenTexto;
+
+            visibles.forEach(r => {
+                const tr = document.createElement("tr");
+                tr.appendChild(celdaEstado(r.estado));
+                tr.appendChild(celdaPatente(r));
+                tr.appendChild(celda(r.moto));
+                tr.appendChild(celda(r.dueno));
+                tr.appendChild(celda(r.trabajo));
+                tr.appendChild(celda(formatoMonto.format(r.monto), "num"));
+                tr.appendChild(celda(r.ingreso));
+                tr.appendChild(celda(String(r.dias), "num"));
+                tr.appendChild(celdaRetiro(r));
+                filas.appendChild(tr);
+            });
+            tabla.hidden = visibles.length === 0;
+            document.getElementById("sinCoincidencias").hidden = visibles.length !== 0;
+        }
+
+        document.getElementById("buscar").addEventListener("input", dibujar);
+        document.getElementById("filtroEstado").addEventListener("change", dibujar);
+
         async function cargarPanel() {
             filas.innerHTML = "";
             try {
@@ -188,31 +250,14 @@
                     return;
                 }
 
-                const registros = data.registros;
-                if (registros.length === 0) {
+                todos = data.registros;
+                if (todos.length === 0) {
                     resumen.textContent = "Sin registros por ahora.";
                     vacio.hidden = false;
                     return;
                 }
-
-                const enProceso = registros.filter(r => r.estado !== "Completo").length;
-                const completos = registros.length - enProceso;
-                resumen.textContent = enProceso + " en proceso · " + completos + " completas";
-
-                registros.forEach(r => {
-                    const tr = document.createElement("tr");
-                    tr.appendChild(celdaEstado(r.estado));
-                    tr.appendChild(celda(r.patente));
-                    tr.appendChild(celda(r.moto));
-                    tr.appendChild(celda(r.dueno));
-                    tr.appendChild(celda(r.trabajo));
-                    tr.appendChild(celda(formatoMonto.format(r.monto), "num"));
-                    tr.appendChild(celda(r.ingreso));
-                    tr.appendChild(celda(String(r.dias), "num"));
-                    tr.appendChild(celdaRetiro(r));
-                    filas.appendChild(tr);
-                });
-                tabla.hidden = false;
+                document.getElementById("filtros").hidden = false;
+                dibujar();
             } catch (err) {
                 resumen.textContent = "No se pudo cargar el panel.";
                 resultado.style.display = "block";

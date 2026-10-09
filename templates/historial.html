@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Historial de la moto - Taller de Motos</title>
+    <link rel="stylesheet" href="/static/estilos.css">
+</head>
+<body class="ancho">
+    <header class="barra">
+        <div class="barra__marca"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#f5b800" stroke-width="4"/><circle cx="16" cy="16" r="3.2" fill="#f5b800"/><g stroke="#f5b800" stroke-width="1.6" stroke-linecap="round"><path d="M16 4v8M16 20v8M4 16h8M20 16h8"/></g></svg><span>Taller de Motos</span></div>
+        <nav class="barra__nav">
+            <a href="/panel">Panel</a>
+            <a href="/clientes/lista">Clientes</a>
+            <a href="/logout">Cerrar sesión</a>
+        </nav>
+    </header>
+    <div class="franja"></div>
+    <main class="contenido contenido--ancho">
+        <div class="panel">
+            <div class="panel__cabecera">
+                <div>
+                    <h1 id="titulo">Historial de la moto</h1>
+                    <p class="bajada" id="datosMoto">Cargando...</p>
+                </div>
+                <div class="acciones">
+                    <a class="boton boton--secundario" href="/panel">Volver al panel</a>
+                </div>
+            </div>
+
+            <div class="tabla-contenedor">
+                <table class="tabla" id="tablaHistorial" hidden>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th>Trabajo</th>
+                            <th class="num">Monto</th>
+                            <th>Ingreso</th>
+                            <th>Retiro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filasHistorial"></tbody>
+                </table>
+            </div>
+            <p class="bajada" id="total" hidden></p>
+            <div id="vacio" class="vacio" hidden>
+                <strong>Esta moto todavía no tiene servicios.</strong>
+            </div>
+            <div id="resultado" role="status" aria-live="polite"></div>
+        </div>
+    </main>
+
+    <script>
+        const tabla = document.getElementById("tablaHistorial");
+        const filas = document.getElementById("filasHistorial");
+        const resultado = document.getElementById("resultado");
+        const formatoMonto = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
+        function celda(texto, clase) {
+            const td = document.createElement("td");
+            td.textContent = texto;
+            if (clase) td.className = clase;
+            return td;
+        }
+
+        async function cargarHistorial() {
+            // El ID de la moto es el numero que viene en la URL: /motos/<id>/historial
+            const partes = window.location.pathname.split("/");
+            const motoId = partes[partes.length - 2];
+            try {
+                const respuesta = await fetch("/motos/" + encodeURIComponent(motoId) + "/historial/datos");
+                const data = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    document.getElementById("datosMoto").textContent = "No se pudo cargar el historial.";
+                    resultado.style.display = "block";
+                    resultado.className = "error";
+                    resultado.textContent = "Error (" + respuesta.status + "): " + (data.error || JSON.stringify(data));
+                    return;
+                }
+
+                const m = data.moto;
+                document.getElementById("titulo").textContent = "Historial de " + m.patente;
+                document.getElementById("datosMoto").textContent =
+                    m.marca + " " + m.modelo + " " + m.anio + " · Dueño: " + m.dueno + " · Tel. " + m.telefono;
+
+                if (data.servicios.length === 0) {
+                    document.getElementById("vacio").hidden = false;
+                    return;
+                }
+                data.servicios.forEach(s => {
+                    const tr = document.createElement("tr");
+                    const td = document.createElement("td");
+                    const marca = document.createElement("span");
+                    marca.className = "estado " + (s.estado === "Completo" ? "estado--completo" : "estado--proceso");
+                    marca.textContent = s.estado;
+                    td.appendChild(marca);
+                    tr.appendChild(td);
+                    tr.appendChild(celda(s.fecha));
+                    tr.appendChild(celda(s.trabajo));
+                    tr.appendChild(celda(formatoMonto.format(s.monto), "num"));
+                    tr.appendChild(celda(s.ingreso));
+                    tr.appendChild(celda(s.retiro || "—"));
+                    filas.appendChild(tr);
+                });
+                tabla.hidden = false;
+                const total = document.getElementById("total");
+                total.textContent = data.servicios.length + (data.servicios.length === 1 ? " servicio" : " servicios") +
+                    " · Total: " + formatoMonto.format(data.total);
+                total.hidden = false;
+            } catch (err) {
+                document.getElementById("datosMoto").textContent = "No se pudo cargar el historial.";
+                resultado.style.display = "block";
+                resultado.className = "error";
+                resultado.textContent = "No se pudo conectar con el servidor.";
+            }
+        }
+        cargarHistorial();
+    </script>
+</body>
+</html>

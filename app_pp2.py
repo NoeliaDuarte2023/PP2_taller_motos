@@ -416,7 +416,7 @@ def datos_panel():
     try:
         # Primero las motos en proceso y, dentro de cada grupo, las mas recientes
         cursor.execute(
-            "SELECT s.id, c.nombre, c.apellido, c.telefono, m.patente, m.marca, m.modelo, "
+            "SELECT s.id, m.id, c.nombre, c.apellido, c.telefono, m.patente, m.marca, m.modelo, "
             "s.descripcion, s.costo, s.ingreso, s.estado, s.retiro "
             "FROM servicios s "
             "JOIN motos m ON m.id = s.moto_id "
@@ -427,13 +427,14 @@ def datos_panel():
 
         ahora = datetime.now()
         registros = []
-        for (sid, nombre, apellido, telefono, patente, marca, modelo,
+        for (sid, moto_id, nombre, apellido, telefono, patente, marca, modelo,
              descripcion, costo, ingreso, estado, retiro) in filas:
             ingreso = a_datetime(ingreso)
             retiro = a_datetime(retiro)
             fin = retiro or ahora
             registros.append({
                 "id": sid,
+                "moto_id": moto_id,
                 "dueno": f"{nombre} {apellido}",
                 "telefono": telefono,
                 "patente": patente,
@@ -638,6 +639,78 @@ def editar_servicio(servicio_id):
         return {"mensaje": "Servicio modificado correctamente."}, 200
 
     return ejecutar_escritura(operacion, "Fallo al modificar el servicio")
+
+
+# ---------------------------------------------------------------------------
+# HISTORIAL DE SERVICIOS DE UNA MOTO (etapa 5)
+# ---------------------------------------------------------------------------
+
+# Pantalla del historial (frontend)
+@app.route("/motos/<int:moto_id>/historial", methods=["GET"])
+@login_requerido
+def historial_moto(moto_id):
+    return render_template("historial.html")
+
+# Datos de la moto, su dueno y todos sus servicios (JSON)
+@app.route("/motos/<int:moto_id>/historial/datos", methods=["GET"])
+@login_requerido
+def datos_historial_moto(moto_id):
+    try:
+        conexion = obtener_conexion()
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo de conexion a MySQL: {error}")
+        return jsonify({"error": "No se pudo cargar el historial. Intente nuevamente mas tarde."}), 500
+
+    cursor = conexion.cursor()
+
+    try:
+        cursor.execute(
+            "SELECT m.patente, m.marca, m.modelo, m.anio, c.nombre, c.apellido, c.telefono "
+            "FROM motos m JOIN clientes c ON c.id = m.cliente_id WHERE m.id = %s",
+            (moto_id,)
+        )
+        moto = cursor.fetchone()
+        if moto is None:
+            return jsonify({"error": "La moto indicada no existe."}), 404
+
+        cursor.execute(
+            "SELECT id, fecha, descripcion, costo, estado, ingreso, retiro "
+            "FROM servicios WHERE moto_id = %s ORDER BY fecha DESC, id DESC",
+            (moto_id,)
+        )
+        servicios = []
+        total = 0.0
+        for (sid, fecha, descripcion, costo, estado, ingreso, retiro) in cursor.fetchall():
+            fecha = fecha if isinstance(fecha, date) else date.fromisoformat(str(fecha))
+            ingreso = a_datetime(ingreso)
+            retiro = a_datetime(retiro)
+            total += float(costo)
+            servicios.append({
+                "id": sid,
+                "fecha": fecha.strftime("%d/%m/%Y"),
+                "trabajo": descripcion,
+                "monto": float(costo),
+                "estado": estado,
+                "ingreso": ingreso.strftime("%d/%m/%Y %H:%M"),
+                "retiro": retiro.strftime("%d/%m/%Y %H:%M") if retiro else None,
+            })
+
+        return jsonify({
+            "moto": {
+                "patente": moto[0], "marca": moto[1], "modelo": moto[2], "anio": moto[3],
+                "dueno": f"{moto[4]} {moto[5]}", "telefono": moto[6],
+            },
+            "servicios": servicios,
+            "total": total,
+        }), 200
+
+    except mysql.connector.Error as error:
+        print(f"[ERROR INTERNO] Fallo al consultar el historial: {error}")
+        return jsonify({"error": "No se pudo cargar el historial. Intente nuevamente mas tarde."}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
 
 
 

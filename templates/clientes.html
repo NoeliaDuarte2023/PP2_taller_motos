@@ -29,6 +29,10 @@
             </div>
             <p class="bajada" id="avisoNuevo" hidden></p>
 
+            <div class="filtros" id="filtros" hidden>
+                <input type="search" id="buscar" placeholder="Buscar por nombre, teléfono o dirección" aria-label="Buscar">
+            </div>
+
             <div class="tabla-contenedor">
                 <table class="tabla" id="tablaClientes" hidden>
                     <thead>
@@ -44,6 +48,10 @@
                 </table>
             </div>
 
+            <div id="sinCoincidencias" class="vacio" hidden>
+                <strong>No hay resultados para esa búsqueda.</strong>
+                <span>Probá con otro nombre o teléfono.</span>
+            </div>
             <div id="vacio" class="vacio" hidden>
                 <strong>Todavía no hay clientes registrados.</strong>
                 <span>Usá «Registrar cliente nuevo» para cargar el primero.</span>
@@ -128,6 +136,19 @@
             enviar("/clientes/" + c.id + "/borrar");
         }
 
+        // Oculta las filas que no coinciden con lo escrito en el buscador
+        function filtrar() {
+            const texto = document.getElementById("buscar").value.trim().toLowerCase();
+            let visibles = 0;
+            filas.querySelectorAll("tr").forEach(tr => {
+                const coincide = texto === "" || (tr.dataset.texto || "").includes(texto);
+                tr.hidden = !coincide;
+                if (coincide) visibles++;
+            });
+            document.getElementById("sinCoincidencias").hidden = visibles !== 0;
+        }
+        document.getElementById("buscar").addEventListener("input", filtrar);
+
         async function cargarClientes() {
             filas.innerHTML = "";
             try {
@@ -152,6 +173,7 @@
 
                 clientes.forEach(c => {
                     const tr = document.createElement("tr");
+                    tr.dataset.texto = [c.nombre, c.apellido, c.telefono, c.direccion].join(" ").toLowerCase();
                     const esNuevo = nuevoId !== null && String(c.id) === nuevoId;
                     if (esNuevo) {
                         tr.className = "fila-nueva";
@@ -188,6 +210,8 @@
                     filas.appendChild(tr);
                 });
                 tabla.hidden = false;
+                document.getElementById("filtros").hidden = false;
+                filtrar();
             } catch (err) {
                 resumen.textContent = "No se pudo cargar la lista.";
                 resultado.style.display = "block";
